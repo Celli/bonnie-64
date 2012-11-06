@@ -451,7 +451,7 @@ write_html_head()
   printf("<td></td><td></td>");
   printf(TABLE_STYLE, 6, 1, "Sequential Output");
   printf(TABLE_STYLE, 4, 1, "Sequential Input");
-  printf(TABLE_STYLE, 2, 1, "Random");
+  printf(TABLE_STYLE, 2, 2, "Random Seeks");
   printf("\n</tr>\n");
 
   printf("<tr>\n");
@@ -461,7 +461,6 @@ write_html_head()
   printf(TABLE_STYLE, 2, 1, "Rewrite");
   printf(TABLE_STYLE, 2, 1, "Per Char");
   printf(TABLE_STYLE, 2, 1, "Block");
-  printf(TABLE_STYLE, 2, 1, "Seeks");
   printf("\n</tr>\n");
 
   printf("<tr>\n");
@@ -488,7 +487,7 @@ write_html(
   off_t  size)
 {
   write_html_head();
-  printf("<tr>\n<td>%s</td><td>%d</td>", machine, size / (1024 * 1024));
+  printf("<tr>\n<td>%s</td><td>%ld</td>", machine, (long)(size / (1024 * 1024)));
   printf("<td>%d</td><td>%4.1f</td><td>%d</td><td>%4.1f</td><td>%d</td><td>%4.1f</td>",
     (int) (((double) size) / (delta[(int) Putc][Elapsed] * 1024.0)),
     delta[(int) Putc][CPU] / delta[(int) Putc][Elapsed] * 100.0,
