@@ -17,6 +17,7 @@
 #include <stdio.h>
 
 #include <strings.h>
+#include <string.h>
 #if !defined(SysV)
 #include <stdlib.h>
 #endif
@@ -178,7 +179,7 @@ int main(
   /* size is in meg, rounded down to multiple of Chunk */
   size *= (1024 * 1024);
   size = Chunk * (size / Chunk);
-  fprintf(stderr, "File '%s', size: %lld\n", name, size);
+  fprintf(stderr, "File '%s', size: %lld\n", name, (long long) size);
 
   /* Fill up a file, writing it a char at a time with the stdio putc() call */
   fprintf(stderr, "Writing with putc()...");
@@ -209,8 +210,15 @@ int main(
 
   /*
    * note that we always close the file before measuring time, in an
-   *  effort to force as much of the I/O out as we can
+   *  effort to force as much of the I/O out as we can.  To be
+   *  paranoid we also flush both at stdio and OS level which, if
+   *  close/fclose does not flush, should make the timings slightly
+   *  more real.
    */
+  if (fflush(stream) != 0)
+    io_error("fflush after putc");
+  if (fsync(fd) == -1)
+    io_error("fsync after putc");
   if (fclose(stream) == -1)
     io_error("fclose after putc");
   get_delta_t(Putc);
@@ -237,6 +245,8 @@ int main(
     if ((words = read(fd, (char *) buf, Chunk)) == -1)
       io_error("rwrite read");
   } /* while we can read a block */
+  if (fsync(fd) == -1)
+    io_error("fsync after rewrite");
   if (close(fd) == -1)
     io_error("close after rewrite");
   get_delta_t(ReWrite);
@@ -271,6 +281,8 @@ int main(
 	io_error("write(2)");
     } /* for each word */
   }
+  if (fsync(fd) == 01)
+    io_error("fsync after fast write");
   if (close(fd) == -1)
     io_error("close after fast write");
   get_delta_t(FastWrite);
@@ -487,7 +499,8 @@ write_html(
   off_t  size)
 {
   write_html_head();
-  printf("<tr>\n<td>%s</td><td>%ld</td>", machine, (long)(size / (1024 * 1024)));
+  printf("<tr>\n<td>%s</td><td>%ld</td>", machine,
+	 (long long) (size / (1024 * 1024)));
   printf("<td>%d</td><td>%4.1f</td><td>%d</td><td>%4.1f</td><td>%d</td><td>%4.1f</td>",
     (int) (((double) size) / (delta[(int) Putc][Elapsed] * 1024.0)),
     delta[(int) Putc][CPU] / delta[(int) Putc][Elapsed] * 100.0,
@@ -522,7 +535,7 @@ report(
   printf("M/sec %%CPU M/sec %%CPU M/sec %%CPU M/sec %%CPU M/sec ");
   printf("%%CPU  /sec %%CPU\n");
 
-  printf("%-8.8s %4lld ", machine, size / (1024 * 1024 * 1000));
+  printf("%-8.8s %4lld ", machine, (long long) (size / (1024 * 1024 * 1000)));
   printf("%5.1f %4.1f %5.1f %4.1f %5.1f %4.1f ",
     ((double) size) / (delta[(int) Putc][Elapsed] * 1024.0 * 1024.0),
     delta[(int) Putc][CPU] / delta[(int) Putc][Elapsed] * 100.0,
